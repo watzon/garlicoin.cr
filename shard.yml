@@ -1,0 +1,13 @@
+name: garlicoin
+version: 0.1.0
+
+authors:
+  - Chris Watson <chris@watzon.me>
+
+crystal: 0.24.1
+
+dependencies:
+  json_rpc:
+    github: Papierkorb/json_rpc
+
+license: MIT
