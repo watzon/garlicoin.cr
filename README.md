@@ -22,6 +22,13 @@ client = Garlicoin::Client.new("localhost", 42070, "username", "password")
 
 accounts = client.list_accounts
 pp accounts # => { "": 2.53575342 }
+
+# Or you can lead your config from your garlicoin.conf directly
+conf = Garlicoin::Config.load
+client = Garlicoin::Client.new(conf)
+
+accounts = client.list_accounts
+pp accounts # => { "": 2.53575342 }
 ```
 
 ## Contributing

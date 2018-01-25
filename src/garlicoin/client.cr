@@ -15,6 +15,14 @@ module Garlicoin
       super http_client
     end
 
+    def self.new(config : Config)
+      host = config.get("rpcallowip").split('/')[0]
+      port = config.get("rpcport").to_i
+      user = config.get("rpcuser")
+      password = config.get("rpcpassword")
+      new(host, port, user, password)
+    end
+
     def abandon_transaction(id : String)
       call(JsonRpc::Response(String), "abandontransaction", [id])
     end
