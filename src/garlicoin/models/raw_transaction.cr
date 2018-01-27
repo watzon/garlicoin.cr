@@ -13,10 +13,10 @@ module Garlicoin::Models
       vin: Array(Vin),
       vout: Array(Vout),
       hex: String,
-      blockhash: String,
-      confirmations: Int32,
-      time: Int32,
-      blocktime: Int32
+      blockhash: String?,
+      confirmations: Int32?,
+      time: Int32?,
+      blocktime: Int32?
     )
 
     class Vin

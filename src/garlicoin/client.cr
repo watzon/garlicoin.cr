@@ -6,6 +6,7 @@ module Garlicoin
 
   class Client < JsonRpc::HttpClient
 
+    # Create a new `Client` using connection information for the `garlicoind` rpc server.
     def initialize(host : String, port : Int32, user : String, password : String)
       # Set up the HTTP client
       http_client = HTTP::Client.new(host, port)
@@ -15,6 +16,8 @@ module Garlicoin
       super http_client
     end
 
+    # Create a new `Client` by utilizing a `Config` object. This config object can be
+    # created manually or by loading an existing config file.
     def self.new(config : Config)
       host = config.get("rpcallowip").split('/')[0]
       port = config.get("rpcport").to_i
@@ -23,78 +26,123 @@ module Garlicoin
       new(host, port, user, password)
     end
 
-    def abandon_transaction(id : String)
-      call(JsonRpc::Response(String), "abandontransaction", [id])
+    # Mark in-wallet transaction <txid> as abandoned
+    # This will mark this transaction and all its in-wallet descendants as abandoned which will allow
+    # for their inputs to be respent.  It can be used to replace "stuck" or evicted transactions.
+    # It only works on transactions which are not included in a block and are not currently in the mempool.
+    # It has no effect on transactions which are already conflicted or abandoned.
+    def abandon_transaction(txid : String)
+      call(JsonRpc::Response(String), "abandontransaction", [txid])
     end
 
+    # Stops current wallet rescan triggered e.g. by an import_prov_key call.
     def abort_rescan
       call(JsonRpc::EmptyResponse, "abortrescan")
     end
 
+    # Add a nrequired-to-sign multisignature address to the wallet.
+    # Each key is a Garlicoin address or hex-encoded public key.
+    # If 'account' is specified (DEPRECATED), assign address to that account.
     def add_multi_sig_address(nrequired : String, keys : Array(String), account : String? = nil)
       call(JsonRpc::Response(Bool), "addmultisigaddress", [nrequired, key_arr, account])
     end
 
+    # Add a witness address for a script (with pubkey or redeemscript known).
+    # It returns the witness script.
     def add_witness_address(address : String)
-      call(JsonRpc::Response(Bool), "addwitnessaddress", [address])
+      call(JsonRpc::Response(String), "addwitnessaddress", [address])
     end
 
+    # Safely copies current wallet file to destination, which can be a directory or a path with filename.
     def backup_wallet(destination : String)
       call(JsonRpc::EmptyResponse, "backupwallet", [destination])
     end
 
+    # Bumps the fee of an opt-in-RBF transaction T, replacing it with a new transaction B.
+    # An opt-in RBF transaction with the given txid must be in the wallet.
+    # The command will pay the additional fee by decreasing (or perhaps removing) its change output.
+    # If the change output is not big enough to cover the increased fee, the command will currently fail
+    # instead of adding new inputs to compensate. (A future implementation could improve this.)
+    # The command will fail if the wallet or mempool contains a transaction that spends one of T's outputs.
+    # By default, the new fee will be calculated automatically using estimatefee.
+    # The user can specify a confirmation target for estimatefee.
+    # Alternatively, the user can specify totalFee, or use RPC settxfee to set a higher fee rate.
+    # At a minimum, the new fee rate must be high enough to pay an additional new relay fee (incrementalfee
+    # returned by getnetworkinfo) to enter the node's mempool.
     def bump_fee(txid : String, options = nil)
       call(JsonRpc::EmptyResponse, "bumpfee", [txid, options])
     end
 
+    # Reveals the private key corresponding to 'address'.
+    # Then the importprivkey can be used with this output
     def dump_private_key(address : String)
       call(JsonRpc::EmptyResponse, "dumpprivkey", [address])
     end
 
+    # Dumps all wallet keys in a human-readable format.
     def dump_wallet(filename : String)
       call(JsonRpc::EmptyResponse, "dumpwallet", [filename])
     end
 
+    # Encrypts the wallet with 'passphrase'. This is for first time encryption.
+    # After this, any calls that interact with private keys such as sending or signing
+    # will require the passphrase to be set prior the making these calls.
+    # Use the walletpassphrase call for this, and then walletlock call.
+    # If the wallet is already encrypted, use the walletpassphrasechange call.
+    # Note that this will shutdown the server.
     def encrypt_wallet(passphrase : String)
       call(JsonRpc::EmptyResponse, "encryptwallet", [passphrase])
     end
 
+    # DEPRECATED. Returns the account associated with the given address.
     def get_account(address : String)
       call(JsonRpc::Response(String), "getaccount", [address])
     end
 
+    # DEPRECATED. Returns the current Garlicoin address for receiving payments to this account.
     def get_account_address(account : String)
       call(JsonRpc::Response(String), "getaccountaddress", [account])
     end
 
+    # DEPRECATED. Returns the list of addresses for the given account.
     def get_addresses_by_account(account : String)
       call(JsonRpc::Response(Array(String)), "getaddressesbyaccount", [account])
     end
 
-    def get_balance(account = "", minconf = 1, include_watch_only = false)
+    # If account is not specified, returns the server's total available balance.
+    # If account is specified (DEPRECATED), returns the balance in the account.
+    # Note that the account "" is not the same as leaving the parameter out.
+    # The server total may be different to the balance in the default "" account.
+    def get_balance(account = nil, minconf = 1, include_watch_only = false)
       call(JsonRpc::Response(Float64), "getbalance", [account, minconf, include_watch_only])
     end
 
+    # Returns the hash of the best (tip) block in the longest blockchain.
     def get_best_block_hash
       call(JsonRpc::Response(String), "getbestblockhash")
     end
 
+    # Returns an Object with information about block <hash> and information about each transaction.
     def get_block(hash : String)
-      call(JsonRpc::Response(Models::Block), "getblock", [hash])
+      call(JsonRpc::Response(Models::Block), "getblock", [hash, 2])
     end
 
+    # Returns an object containing various state info regarding blockchain processing.
     def get_blockchain_info
       call(JsonRpc::Response(Models::BlockchainInfo), "getblockchaininfo")
     end
 
+    # Returns the number of blocks in the longest blockchain.
     def get_block_count
       call(JsonRpc::Response(Int32), "getblockcount")
     end
 
+    # Returns hash of block in best-block-chain at height provided.
     def get_block_hash(index : Int32)
       call(JsonRpc::Response(String), "getblockhash", [index])
     end
 
+    # If verbose is true, returns an Object with information about blockheader <hash>.
     def get_block_header(hash : String)
       header = call(JsonRpc::Response(Models::BlockHeader), "getblockheader", [hash])
     end

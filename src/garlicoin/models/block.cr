@@ -13,7 +13,7 @@ module Garlicoin::Models
       version: Int32,
       versionHex: String,
       merkleroot: String,
-      tx: Array(String),
+      tx: Array(RawTransaction),
       time: { type: Time, converter: Time::EpochConverter },
       mediantime: { type: Time, converter: Time::EpochConverter },
       nonce: Int32,
