@@ -35,5 +35,3 @@ module Garlicoin
 
   end
 end
-
-pp Garlicoin::Config.load
