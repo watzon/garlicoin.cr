@@ -80,15 +80,15 @@ module Garlicoin
     end
 
     def get_block(hash : String)
-      call(JsonRpc::Response(JSON::Any), "getblock", [hash])
+      call(JsonRpc::Response(Models::Block), "getblock", [hash])
     end
 
     def get_blockchain_info
-      call(JsonRpc::Response(JSON::Any), "getblockchaininfo")
+      call(JsonRpc::Response(Models::BlockchainInfo), "getblockchaininfo")
     end
 
     def get_block_count
-      call(JsonRpc::Response(JSON::Any), "getblockcount")
+      call(JsonRpc::Response(Int32), "getblockcount")
     end
 
     def get_block_hash(index : Int32)
@@ -96,11 +96,11 @@ module Garlicoin
     end
 
     def get_block_header(hash : String)
-      call(JsonRpc::Response(JSON::Any), "getblockheader", [hash])
+      header = call(JsonRpc::Response(Models::BlockHeader), "getblockheader", [hash])
     end
 
     def get_block_template(params = {} of String => JSON::Any)
-      call(JsonRpc::Response(JSON::Any), "getblocktemplate", [params])
+      call(JsonRpc::Response(Models::BlockTemplate), "getblocktemplate", [params])
     end
 
     def get_connection_count
@@ -108,15 +108,16 @@ module Garlicoin
     end
 
     def get_chain_tips
-      call(JsonRpc::Response(Array(JSON::Any)), "getchaintips")
+      call(JsonRpc::Response(Array(Models::ChainTip)), "getchaintips")
     end
 
     def get_difficulty
       call(JsonRpc::Response(Float64), "getdifficulty")
     end
 
-    def get_info(extended = true)
-      call(JsonRpc::Response(JSON::Any), "getinfo")
+    # Deprecated
+    def get_info
+      raise "get_info is deprecated. Use get_blockchain_info or get_wallet_info instead."
     end
 
     def get_mining_info(extended = true)
@@ -131,20 +132,20 @@ module Garlicoin
       call(JsonRpc::Response(Array(String)), "getrawmempool")
     end
 
-    def get_raw_transaction(id : String, verbose = 0)
-      call(JsonRpc::Response(JSON::Any), "getrawtransaction", [id, verbose])
+    def get_raw_transaction(txid : String)
+      call(JsonRpc::Response(String), "getrawtransaction", [txid, 0])
     end
 
     def get_received_by_account(account : String, minconf = 1)
-      call(JsonRpc::Response(JSON::Any), "getreceivedbyaccount", [account, minconf])
+      call(JsonRpc::Response(Float64), "getreceivedbyaccount", [account, minconf])
     end
 
     def get_received_by_address(address : String, minconf = 1)
-      call(JsonRpc::Response(JSON::Any), "getreceivedbyaddress", [address, minconf])
+      call(JsonRpc::Response(Float64), "getreceivedbyaddress", [address, minconf])
     end
 
-    def get_transaction(id : String)
-      call(JsonRpc::Response(JSON::Any), "gettransaction", [id])
+    def get_transaction(txid : String)
+      call(JsonRpc::Response(Models::RawTransaction), "getrawtransaction", [txid, 1])
     end
 
     def get_unconfirmed_balance
@@ -152,11 +153,8 @@ module Garlicoin
     end
 
     def get_wallet_info
-      call(JsonRpc::Response(JSON::Any), "getwalletinfo")
-    end
-
-    def get_work(data = {} of String => JSON::Any)
-      call(JsonRpc::Response(JSON::Any), "getwork", [data])
+      info = call(JsonRpc::Response(JSON::Any), "getwalletinfo")
+      Models::WalletInfo.from_json(info.to_json)
     end
 
     def import_address(address : String, label = nil, rescan = true, p2sh = true)
@@ -200,27 +198,49 @@ module Garlicoin
     end
 
     def list_received_by_account(minconf = 1, empty = true, include_watch_only = false)
-      call(JsonRpc::Response(JSON::Any), "listreceivedbyaccount", [minconf, empty, include_watch_only])
+      call(JsonRpc::Response(
+            Array(
+              NamedTuple(
+                account: String,
+                amount: Float64,
+                confirmations: Int32
+              )
+            )
+          ), "listreceivedbyaccount", [minconf, empty, include_watch_only])
     end
 
     def list_received_by_address(minconf = 1, empty = true, include_watch_only = false)
-      call(JsonRpc::Response(JSON::Any), "listreceivedbyaddress", [minconf, empty, include_watch_only])
+      call(JsonRpc::Response(
+          Array(
+            NamedTuple(
+              account: String,
+              amount: Float64,
+              confirmations: Int32
+            )
+          )
+        ), "listreceivedbyaddress", [minconf, empty, include_watch_only])
     end
 
     def list_since_block(blockhash : String, confirmations = 1, include_watch_only = false, include_removed = true)
-      call(JsonRpc::Response(JSON::Any), "listreceivedbyaddress", [blockhash, confirmations, include_watch_only, include_removed])
+      call(JsonRpc::Response(
+        NamedTuple(
+          transactions: Array(String),
+          removed: Array(String),
+          lastblock: String
+        )
+      ), "listsinceblock", [blockhash, confirmations, include_watch_only, include_removed])
     end
 
     def list_transactions(account : String, count = 10, skip = 0, include_watch_only = false)
-      call(JsonRpc::Response(JSON::Any), "listtransactions", [account, count, skip, include_watch_only])
+      call(JsonRpc::Response(Array(Models::Transaction)), "listtransactions", [account, count, skip, include_watch_only])
     end
 
     def list_unspent(addresses : Array(String), minconf = 1, maxconf = 9999999, include_unsafe = true, query_options = nil)
-      call(JsonRpc::Response(JSON::Any), "listunspent", [minconf, maxconf, addresses, include_unsafe, query_options])
+      call(JsonRpc::Response(Array(Models::Unspent)), "listunspent", [minconf, maxconf, addresses, include_unsafe, query_options])
     end
 
     def list_wallets
-      call(JsonRpc::Response(JSON::Any), "listwallets")
+      call(JsonRpc::Response(Array(String)), "listwallets")
     end
 
     def lock_unspent(transactions = "")
