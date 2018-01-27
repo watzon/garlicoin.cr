@@ -38,4 +38,4 @@ end
 config = Garlicoin::Config.load
 client = Garlicoin::Client.new(config)
 
-pp client.get_block("fb2d21d39fac92011a48b6ebddd192e764021d7f1351e93a1f1e717383fb4e93")
+pp client.get_raw_mem_pool
